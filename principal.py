@@ -1,5 +1,4 @@
 import tkinter as tk
-import webbrowser
 from tkinter import filedialog, messagebox
 from tkinter import ttk
 import pandas as pd
@@ -9,6 +8,7 @@ from openpyxl import load_workbook
 from openpyxl.styles import Font, PatternFill
 import re
 import subprocess
+from copy import copy
 
 def normalizar(texto):
     if pd.isna(texto):
@@ -56,7 +56,6 @@ class App:
         self.right.pack(side="right", fill="both", expand=True)
         self.bgcolor = self.right["bg"]
 
-        # PANEL IZQUIERDO
         self.resultado1 = ttk.Label(self.left, text="", style="ResultBig.TLabel")
         self.resultado2 = ttk.Label(self.left, text="", style="ResultBig.TLabel")
         self.resultado3 = ttk.Label(self.left, text="", style="ResultBig.TLabel")
@@ -71,31 +70,10 @@ class App:
         self.aviso_grande = tk.Label(self.left, text="⚠️ Solo se admiten archivos .xlsx",
                                      bg="#2563eb", fg="white", font=("Segoe UI", 14, "bold"))
         self.aviso_grande.pack(pady=30)
-        # Línea del copyright
-        licencia_label = tk.Label(
-            self.left,
-            text="Licencia MIT • © 2025",
-            bg="#2563eb",
-            fg="white",
-            font=("Segoe UI", 9),
-            cursor="hand2"
-        )
-        licencia_label.pack(side="bottom", pady=(0, 0))
 
-        # Enlace a la licencia
-        ver_licencia = tk.Label(
-            self.left,
-            text="Ver licencia",
-            bg="#2563eb",
-            fg="lightblue",
-            font=("Segoe UI", 9, "underline"),
-            cursor="hand2"
-        )
-        ver_licencia.pack(side="bottom")
-        ver_licencia.bind("<Button-1>",
-                          lambda e: webbrowser.open("https://github.com/raulcalleti96/CruzarCuentas/blob/main/LICENSE"))
+        tk.Label(self.left, text="Licencia registrada • © 2025", bg="#2563eb",
+                 fg="white", font=("Segoe UI", 9)).pack(side="bottom", pady=10)
 
-        # PANEL DERECHO
         ttk.Label(self.right, text="📂 Introduce los archivos", style="Title.TLabel", background=self.bgcolor).pack(pady=(0, 20))
 
         ttk.Label(self.right, text="Clientes (.xlsx)", background=self.bgcolor).pack()
@@ -152,8 +130,8 @@ class App:
         }
 
         encontrados = 0
-        dudosos = []
-        no_encontrados = []
+        dudosos = 0
+        no_encontrados = 0
 
         wb = load_workbook(self.facturas_path)
         ws = wb.active
@@ -163,31 +141,39 @@ class App:
         negrita = Font(bold=True)
 
         for idx, nombre_raw in enumerate(facturas[4]):
-            fila_excel = idx + 7
+            fila_excel = idx + 8
             nombre_normalizado = normalizar(nombre_raw)
+            cell = ws.cell(row=fila_excel, column=3)
+
+            old_fill = copy(cell.fill)
+            old_font = copy(cell.font)
+            old_align = copy(cell.alignment)
+
             if nombre_normalizado in cuentas_dict:
                 cuenta = cuentas_dict[nombre_normalizado]
-                ws.cell(row=fila_excel, column=3).value = cuenta
-                encontrados += 1
+                if cell.value != cuenta:
+                    cell.value = cuenta
+                    encontrados += 1
             else:
                 posibles = difflib.get_close_matches(nombre_normalizado, cuentas_dict.keys(), n=1, cutoff=0.8)
                 if posibles:
-                    sugerido = posibles[0]
-                    cuenta = cuentas_dict[sugerido]
-                    ws.cell(row=fila_excel, column=3).value = cuenta
-                    ws.cell(row=fila_excel, column=3).fill = naranja
-                    ws.cell(row=fila_excel, column=3).font = negrita
-                    dudosos.append((fila_excel, nombre_raw, sugerido))
+                    cuenta = cuentas_dict[posibles[0]]
+                    cell.value = cuenta
+                    cell.fill = naranja
+                    cell.font = negrita
+                    cell.alignment = old_align
+                    dudosos += 1
                 else:
-                    ws.cell(row=fila_excel, column=3).fill = rojo
-                    ws.cell(row=fila_excel, column=3).font = negrita
-                    no_encontrados.append((fila_excel, nombre_raw))
+                    cell.fill = rojo
+                    cell.font = negrita
+                    cell.alignment = old_align
+                    no_encontrados += 1
 
         wb.save(self.facturas_path)
 
         self.resultado1.config(text=f"✅ {encontrados} cuentas encontradas.")
-        self.resultado2.config(text=f"🟧 {len(dudosos)} dudosas en naranja.")
-        self.resultado3.config(text=f"🟥 {len(no_encontrados)} sin coincidencia en rojo.")
+        self.resultado2.config(text=f"🟧 {dudosos} dudosas en naranja.")
+        self.resultado3.config(text=f"🟥 {no_encontrados} sin coincidencia en rojo.")
         self.abrir_btn.pack()
 
 def main():
