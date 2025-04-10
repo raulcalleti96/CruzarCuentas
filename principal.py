@@ -1,4 +1,5 @@
 import tkinter as tk
+import webbrowser
 from tkinter import filedialog, messagebox
 from tkinter import ttk
 import pandas as pd
@@ -70,9 +71,29 @@ class App:
         self.aviso_grande = tk.Label(self.left, text="⚠️ Solo se admiten archivos .xlsx",
                                      bg="#2563eb", fg="white", font=("Segoe UI", 14, "bold"))
         self.aviso_grande.pack(pady=30)
+        # Línea del copyright
+        licencia_label = tk.Label(
+            self.left,
+            text="Licencia MIT • © 2025",
+            bg="#2563eb",
+            fg="white",
+            font=("Segoe UI", 9),
+            cursor="hand2"
+        )
+        licencia_label.pack(side="bottom", pady=(0, 0))
 
-        tk.Label(self.left, text="Licencia registrada • © 2025", bg="#2563eb",
-                 fg="white", font=("Segoe UI", 9)).pack(side="bottom", pady=10)
+        # Enlace a la licencia
+        ver_licencia = tk.Label(
+            self.left,
+            text="Ver licencia",
+            bg="#2563eb",
+            fg="lightblue",
+            font=("Segoe UI", 9, "underline"),
+            cursor="hand2"
+        )
+        ver_licencia.pack(side="bottom")
+        ver_licencia.bind("<Button-1>",
+                          lambda e: webbrowser.open("https://github.com/raulcalleti96/CruzarCuentas/blob/main/LICENSE"))
 
         # PANEL DERECHO
         ttk.Label(self.right, text="📂 Introduce los archivos", style="Title.TLabel", background=self.bgcolor).pack(pady=(0, 20))
